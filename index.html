@@ -2,34 +2,153 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stream Embed</title>
+<meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>TV Channel Switcher</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
   <style>
-    html, body {
+    body {
+      background-color: #000;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
       margin: 0;
-      padding: 0;
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
-      background: #000;
     }
-    iframe {
-      display: block;
+
+    .tv-container {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .tv-screen {
+      width: 1170px;
+      height: 658px;
+      background-color: #111;
+      box-shadow: 0 0 20px #0f0;
+      position: relative;
+    }
+
+    iframe, video {
       width: 100%;
       height: 100%;
       border: none;
+      display: none;
+      background-color: black;
+    }
+
+    .channel-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #222;
+      color: white;
+      border: 1px solid #0f0;
+      cursor: pointer;
+      width: 150px;
+    }
+
+    button:hover {
+      background-color: #0f0;
+      color: #000;
     }
   </style>
 </head>
 <body>
-  <iframe 
-    src="https://epiembeds.online/embed/tntsports3-uk" 
-    width="100%" 
-    height="100%" 
-    frameborder="0" 
-    scrolling="no" 
-    allow="autoplay; encrypted-media; picture-in-picture; fullscreen" 
-    allowfullscreen>
-  </iframe>
+  <div class="tv-container">
+    <div class="tv-screen">
+      <iframe id="tv-iframe"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        referrerpolicy="strict-origin-when-cross-origin"
+        allowfullscreen></iframe>
+      <video id="tv-video" controls autoplay></video>
+    </div>
+    <div class="channel-buttons">
+      <!-- Alphabetically Ordered Buttons -->
+      <button onclick="switchToHLS('https://cdn3.wowza.com/1/ZHdrMWt1NjlDSzFu/bzdDVG10/hls/v9ggnfcj/360/chunklist.m3u8')">EWTN PL</button>
+      <button onclick="switchToHLS('https://vs2126.vcdn.biz/cacd1c6a99ee154b5c7d78a52d17e27b_megogo/live/hls/b/700_2490_4000/u_sid/0/o/157766541/rsid/2d20baa0-758f-43c1-ac66-0df23e9ae3a2/u_uid/0/u_vod/0/u_device/cms_html5/u_devicekey/_site/lip/37.109.162.54*asn/u_srvc/81255/u_did/web_XkXatVzQiYuxwYoGXyXJfjfePaDX3Jzq/type.live/chunklist-sid775857816421306678-b4000000.m3u8')">Puls 2</button>
+      <!-- Change these two buttons -->
+<button onclick="switchToYouTube('https://www.youtube-nocookie.com/embed/dzntyCTgJMQ?autoplay=1&mute=1')">Republika</button>
+<button onclick="switchToYouTube('https://www.youtube-nocookie.com/embed/FL09uo-T0A4?autoplay=1&mute=1')">wPolsce24</button>
+      <button onclick="switchToDASH('https://liveovh009.cda.pl/enc129/tvp1hdraw/tvp1hdraw.mpd')">TVP 1</button>
+      <button onclick="switchToDASH('https://live-ch1.trwam.cf.insyscd.net/out/v1/b99041a282774d4a8fe84a54243af5de/trwamtv-live-ch1.mpd')">Trwam</button>
+      
+
+    </div>
+  </div>
+
+  <script>
+    const iframe = document.getElementById('tv-iframe');
+    const video = document.getElementById('tv-video');
+    let hls = null;
+    let dashPlayer = null;
+
+    function stopVideoPlayers() {
+      if (hls) {
+        hls.destroy();
+        hls = null;
+      }
+      if (dashPlayer) {
+        dashPlayer.reset();
+        dashPlayer = null;
+      }
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+      video.style.display = 'none';
+      iframe.src = '';
+      iframe.style.display = 'none';
+    }
+
+    function switchToYouTube(url) {
+  stopVideoPlayers();
+  // Force a clean load
+  iframe.src = '';
+  iframe.style.display = 'block';
+  // Small delay helps in some browsers
+  setTimeout(() => {
+    iframe.src = url;
+  }, 50);
+}
+
+    function switchToHLS(url) {
+      stopVideoPlayers();
+      if (Hls.isSupported()) {
+        hls = new Hls();
+        hls.loadSource(url);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = url;
+        video.play();
+      }
+      video.style.display = 'block';
+    }
+
+    function switchToDASH(url) {
+      stopVideoPlayers();
+      dashPlayer = dashjs.MediaPlayer().create();
+      dashPlayer.initialize(video, url, true);
+      video.style.display = 'block';
+    }
+
+    function switchToMP4(url) {
+      stopVideoPlayers();
+      video.src = url;
+      video.play();
+      video.style.display = 'block';
+    }
+
+    // Autoplay default channel on load
+switchToYouTube('https://www.youtube-nocookie.com/embed/dzntyCTgJMQ?autoplay=1&mute=1');
+  </script>
 </body>
 </html>
